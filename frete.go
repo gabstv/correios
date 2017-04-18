@@ -92,8 +92,31 @@ type FreteRequest struct {
 	AvisoRecebimento bool
 }
 
+func (r *FreteRequest) SetServicos(srvs ...TipoServico) {
+	r.Servicos = make([]TipoServico, 0)
+	for _, v := range srvs {
+		r.Servicos = append(r.Servicos, v)
+	}
+}
+
 type FreteResponse struct {
 	Servicos map[TipoServico]ServicoResponse
+}
+
+func (r *FreteResponse) Any() ServicoResponse {
+	if r.Servicos == nil || len(r.Servicos) == 0 {
+		return ServicoResponse{
+			Erro:    &ServicoResponseError{Codigo: ERR_WTF},
+			ErroMsg: "nenhum serviço encontrado",
+		}
+	}
+	for _, v := range r.Servicos {
+		return v
+	}
+	return ServicoResponse{
+		Erro:    &ServicoResponseError{Codigo: ERR_WTF},
+		ErroMsg: "nenhum serviço encontrado",
+	}
 }
 
 type ServicoResponseError struct {
