@@ -18,13 +18,23 @@ type TipoServico string
 
 type TipoErro int
 
+// update 05/05/2017
+// Algum developer dos correios ficou muito louco no Cinco de Mayo
+// e resolveu, sem nenhum aviso, trocar os ids:
+// 04510 – PAC sem contrato (era 41106)
+// 04669 – PAC com contrato
+// 04014 – SEDEX sem contrato (era 40010)
+// 04162 – SEDEX com contrato
+//
+// Não há nenhuma documentação sobre a mudança no momento.
+
 const (
 	//https://www.correios.com.br/para-voce/correios-de-a-a-z/pdf/calculador-remoto-de-precos-e-prazos/manual-de-implementacao-do-calculo-remoto-de-precos-e-prazos
-	SEDEX_Varejo          TipoServico = "40010"
+	SEDEX_Varejo          TipoServico = "04014"
 	SEDEX_a_Cobrar_Varejo TipoServico = "40045"
 	SEDEX_10_Varejo       TipoServico = "40215"
 	SEDEX_Hoje_Varejo     TipoServico = "40290"
-	PAC_Varejo            TipoServico = "41106"
+	PAC_Varejo            TipoServico = "04510"
 	//
 	ERR_TipoServicoInvalido          TipoErro = -1
 	ERR_CepOrigemInvalido            TipoErro = -2
