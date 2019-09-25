@@ -205,10 +205,12 @@ func CalcularFrete(req *FreteRequest) (*FreteResponse, error) {
 		r00 := &FreteResponse{
 			Servicos: make(map[TipoServico]ServicoResponse),
 		}
-		for _, v := range reqs {
+		for i, v := range reqs {
 			rsp, err := CalcularFrete(v)
-			if err != nil {
+			if err != nil && len(reqs) == i+1 {
 				return r00, err
+			} else if err != nil {
+				continue
 			}
 			for k2, v2 := range rsp.Servicos {
 				r00.Servicos[k2] = v2
