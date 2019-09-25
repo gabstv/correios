@@ -18,6 +18,13 @@ type TipoServico string
 
 type TipoErro int
 
+// StupidSingleServiceMode exists because Correios sucks.
+//
+// update 25/09/2019
+// Algum developer dos correios quer agilizar a privatização e
+// para isso resolver estragar a API ainda mais.
+var StupidSingleServiceMode = false
+
 // update 05/05/2017
 // Algum developer dos correios ficou muito louco no Cinco de Mayo
 // e resolveu, sem nenhum aviso, trocar os ids:
@@ -176,6 +183,39 @@ func NewFreteRequest(cepOrigem, cepDestino string) *FreteRequest {
 
 // http://ws.correios.com.br/calculador/CalcPrecoPrazo.aspx?sCepOrigem=01243000&sCepDestino=04041002&nVlPeso=1&nCdFormato=1&nVlComprimento=16&nVlAltura=5&nVlLargura=11&StrRetorno=xml&nCdServico=40010,41106&nVlValorDeclarado=0
 func CalcularFrete(req *FreteRequest) (*FreteResponse, error) {
+	if req == nil {
+		return nil, errors.New("nil request")
+	}
+	if StupidSingleServiceMode && len(req.Servicos) > 1 {
+		reqs := make([]*FreteRequest, len(req.Servicos))
+		for k := range req.Servicos {
+			clone := &FreteRequest{
+				CepOrigem:        req.CepOrigem,
+				CepDestino:       req.CepDestino,
+				PesoKg:           req.PesoKg,
+				ComprimentoCm:    req.ComprimentoCm,
+				AlturaCm:         req.AlturaCm,
+				LarguraCm:        req.LarguraCm,
+				Servicos:         []TipoServico{req.Servicos[k]},
+				ValorDeclarado:   req.ValorDeclarado,
+				AvisoRecebimento: req.AvisoRecebimento,
+			}
+			reqs[k] = clone
+		}
+		r00 := &FreteResponse{
+			Servicos: make(map[TipoServico]ServicoResponse),
+		}
+		for _, v := range reqs {
+			rsp, err := CalcularFrete(v)
+			if err != nil {
+				return r00, err
+			}
+			for k2, v2 := range rsp.Servicos {
+				r00.Servicos[k2] = v2
+			}
+		}
+		return r00, nil
+	}
 	v := url.Values{}
 	v.Set("sCepOrigem", strings.Trim(req.CepOrigem, "-"))
 	v.Set("sCepDestino", strings.Trim(req.CepDestino, "-"))
