@@ -107,6 +107,8 @@ type FreteRequest struct {
 	Servicos         []TipoServico
 	ValorDeclarado   decimal.Decimal
 	AvisoRecebimento bool
+	CdEmpresa        string
+	DsSenha          string
 }
 
 func (r *FreteRequest) SetServicos(srvs ...TipoServico) {
@@ -199,6 +201,8 @@ func CalcularFrete(req *FreteRequest) (*FreteResponse, error) {
 				Servicos:         []TipoServico{req.Servicos[k]},
 				ValorDeclarado:   req.ValorDeclarado,
 				AvisoRecebimento: req.AvisoRecebimento,
+				CdEmpresa:        req.CdEmpresa,
+				DsSenha:          req.DsSenha,
 			}
 			reqs[k] = clone
 		}
@@ -235,6 +239,10 @@ func CalcularFrete(req *FreteRequest) (*FreteResponse, error) {
 	v.Set("nVlValorDeclarado", req.ValorDeclarado.String())
 	if req.AvisoRecebimento {
 		v.Set("sCdAvisoRecebimento", "S")
+	}
+	if req.CdEmpresa != "" {
+		v.Set("nCdEmpresa", req.CdEmpresa)
+		v.Set("sDsSenha", req.DsSenha)
 	}
 
 	cresp, err := http.Get("http://ws.correios.com.br/calculador/CalcPrecoPrazo.aspx?" + v.Encode())
