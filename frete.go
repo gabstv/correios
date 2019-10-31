@@ -2,6 +2,7 @@ package correios
 
 import (
 	"bytes"
+	"context"
 	"encoding/xml"
 	"errors"
 	"io"
@@ -184,7 +185,7 @@ func NewFreteRequest(cepOrigem, cepDestino string) *FreteRequest {
 }
 
 // http://ws.correios.com.br/calculador/CalcPrecoPrazo.aspx?sCepOrigem=01243000&sCepDestino=04041002&nVlPeso=1&nCdFormato=1&nVlComprimento=16&nVlAltura=5&nVlLargura=11&StrRetorno=xml&nCdServico=40010,41106&nVlValorDeclarado=0
-func CalcularFrete(req *FreteRequest) (*FreteResponse, error) {
+func CalcularFrete(ctx context.Context, req *FreteRequest) (*FreteResponse, error) {
 	if req == nil {
 		return nil, errors.New("nil request")
 	}
@@ -210,7 +211,7 @@ func CalcularFrete(req *FreteRequest) (*FreteResponse, error) {
 			Servicos: make(map[TipoServico]ServicoResponse),
 		}
 		for i, v := range reqs {
-			rsp, err := CalcularFrete(v)
+			rsp, err := CalcularFrete(ctx, v)
 			if err != nil && len(reqs) == i+1 {
 				return r00, err
 			} else if err != nil {
@@ -245,7 +246,10 @@ func CalcularFrete(req *FreteRequest) (*FreteResponse, error) {
 		v.Set("sDsSenha", req.DsSenha)
 	}
 
-	cresp, err := http.Get("http://ws.correios.com.br/calculador/CalcPrecoPrazo.aspx?" + v.Encode())
+	rq0, _ := http.NewRequest(http.MethodGet, "http://ws.correios.com.br/calculador/CalcPrecoPrazo.aspx?"+v.Encode(), nil)
+	rq0 = rq0.WithContext(ctx)
+
+	cresp, err := http.DefaultClient.Do(rq0)
 	if err != nil {
 		return nil, err
 	}
