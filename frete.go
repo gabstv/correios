@@ -15,6 +15,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+var FreteEndpoint = "http://ws.correios.com.br/calculador/CalcPrecoPrazo.aspx"
+
 type TipoServico string
 
 type TipoErro int
@@ -246,7 +248,7 @@ func CalcularFrete(ctx context.Context, req *FreteRequest) (*FreteResponse, erro
 		v.Set("sDsSenha", req.DsSenha)
 	}
 
-	rq0, _ := http.NewRequest(http.MethodGet, "http://ws.correios.com.br/calculador/CalcPrecoPrazo.aspx?"+v.Encode(), nil)
+	rq0, _ := http.NewRequest(http.MethodGet, FreteEndpoint+"?"+v.Encode(), nil)
 	rq0 = rq0.WithContext(ctx)
 
 	cresp, err := http.DefaultClient.Do(rq0)
