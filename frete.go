@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -257,7 +258,9 @@ func CalcularFrete(ctx context.Context, req *FreteRequest) (*FreteResponse, erro
 	}
 	defer cresp.Body.Close()
 
-	p := xml.NewDecoder(cresp.Body)
+	rrbuf := new(bytes.Buffer)
+	io.Copy(rrbuf, cresp.Body)
+	p := xml.NewDecoder(rrbuf)
 	p.CharsetReader = CharsetReader
 
 	vlov := struct {
@@ -267,6 +270,7 @@ func CalcularFrete(ctx context.Context, req *FreteRequest) (*FreteResponse, erro
 
 	err = p.Decode(&vlov)
 	if err != nil {
+		fmt.Println("CORREIOS: " + rrbuf.String())
 		return nil, err
 	}
 	//
