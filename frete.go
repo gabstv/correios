@@ -53,10 +53,30 @@ const (
 	SvcSEDEXACobrarVarejo TipoServico = "40045"
 	SvcSEDEX10Varejo      TipoServico = "40215"
 	SvcSEDEXHojeVarejo    TipoServico = "40290"
+	SvcSEDEXComContrato   TipoServico = "04162"
 	SvcPACVarejo          TipoServico = "04510"
 	SvcPACComContrato     TipoServico = "04669"
-	SvcSEDEXComContrato   TipoServico = "04162"
 )
+
+func (svct TipoServico) String() string {
+	switch svct {
+	case SvcSEDEXVarejo:
+		return "SEDEX Varejo"
+	case SvcSEDEXACobrarVarejo:
+		return "SEDEX Varejo (a cobrar)"
+	case SvcSEDEX10Varejo:
+		return "SEDEX 10 Varejo"
+	case SvcSEDEXHojeVarejo:
+		return "SEDEX Hoje Varejo"
+	case SvcSEDEXComContrato:
+		return "SEDEX"
+	case SvcPACVarejo:
+		return "PAC Varejo"
+	case SvcPACComContrato:
+		return "PAC"
+	}
+	return string(svct)
+}
 
 // Todos os tipos de erros possíveis que a API dos Correios pode retornar
 const (
