@@ -7,8 +7,7 @@ import (
 )
 
 func TestSimpleRequest(t *testing.T) {
-	StupidSingleServiceMode = true
-	r := NewFreteRequest("01243000", "65299970")
+	r := NewFreteRequest("01243000", "65299970").SetServicos(SvcSEDEXVarejo)
 	resp, err := CalcularFrete(context.Background(), r)
 	if err != nil {
 		t.Fail()

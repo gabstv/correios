@@ -16,22 +16,29 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// RequestMode altera o metodo utilizado p/ obter o frete
+type RequestMode int
+
+const (
+	// RequestModeAuto escolher o modo automaticamente
+	RequestModeAuto RequestMode = iota
+	// RequestModeSingle sempre envia um request por tipo de serviço
+	RequestModeSingle
+	// RequestModeCombined sempre envia um único request com todos tipos de serviço
+	RequestModeCombined
+)
+
+// FreteEndpoint o endpoint a ser utilizado para calcular o frete
 var FreteEndpoint = "http://ws.correios.com.br/calculador/CalcPrecoPrazo.aspx"
 
+// TipoServico representa os tipos de serviço (numérico)
 type TipoServico string
 
+// TipoErro representa uma resposta de erro dos Correios (código interno)
 type TipoErro int
 
-// StupidSingleServiceMode exists because Correios sucks.
-//
-// update 25/09/2019
-// Algum developer dos correios quer agilizar a privatização e
-// para isso resolver estragar a API ainda mais.
-var StupidSingleServiceMode = false
-
 // update 05/05/2017
-// Algum developer dos correios ficou muito louco no Cinco de Mayo
-// e resolveu, sem nenhum aviso, trocar os ids:
+// Correios alterou os códigos de serviço:
 // 04510 – PAC sem contrato (era 41106)
 // 04669 – PAC com contrato
 // 04014 – SEDEX sem contrato (era 40010)
@@ -39,66 +46,72 @@ var StupidSingleServiceMode = false
 //
 // Não há nenhuma documentação sobre a mudança no momento.
 
+// Todos os tipos de serviço
+//https://www.correios.com.br/para-voce/correios-de-a-a-z/pdf/calculador-remoto-de-precos-e-prazos/manual-de-implementacao-do-calculo-remoto-de-precos-e-prazos
 const (
-	//https://www.correios.com.br/para-voce/correios-de-a-a-z/pdf/calculador-remoto-de-precos-e-prazos/manual-de-implementacao-do-calculo-remoto-de-precos-e-prazos
-	SEDEX_Varejo          TipoServico = "04014"
-	SEDEX_a_Cobrar_Varejo TipoServico = "40045"
-	SEDEX_10_Varejo       TipoServico = "40215"
-	SEDEX_Hoje_Varejo     TipoServico = "40290"
-	PAC_Varejo            TipoServico = "04510"
-	//
-	ERR_TipoServicoInvalido          TipoErro = -1
-	ERR_CepOrigemInvalido            TipoErro = -2
-	ERR_CepDestinoInvalido           TipoErro = -3
-	ERR_CepPesoExcedido              TipoErro = -4
-	ERR_ValorDeclaradoAlto10k        TipoErro = -5
-	ERR_ServicoIndisponivelTrecho    TipoErro = -6
-	ERR_ValorDeclaradoObrigatorio    TipoErro = -7
-	ERR_MaoPropriaIndisponivel       TipoErro = -8
-	ERR_AvisoRecebimentoIndisponivel TipoErro = -9
-	ERR_PrecificacaoIndisponivel     TipoErro = -10
-	ERR_InformarDimensoes            TipoErro = -11
-	ERR_Comprimento                  TipoErro = -12
-	ERR_Largura                      TipoErro = -13
-	ERR_Altura                       TipoErro = -14
-	ERR_Comprimento105               TipoErro = -15  // > 105cm
-	ERR_Largura105                   TipoErro = -16  // > 105cm
-	ERR_Altura105                    TipoErro = -17  // > 105cm
-	ERR_AlturaInferior               TipoErro = -18  // < 2cm
-	ERR_LarguraInferior              TipoErro = -20  // < 11cm
-	ERR_ComprimentoInferior          TipoErro = -22  // < 16cm
-	ERR_DimensoesSoma                TipoErro = -23  // A soma resultante do comprimento + largura + altura não deve superar a 200 cm
-	ERR_Comprimento2                 TipoErro = -24  // WTF (ver -12)
-	ERR_Diametro                     TipoErro = -25  // Diâmetro inválido
-	ERR_Comprimento3                 TipoErro = -26  // WTF (ver -12)
-	ERR_Diametro2                    TipoErro = -27  // ?
-	ERR_Comprimento4                 TipoErro = -28  // O comprimento não pode ser maior que 105 cm.
-	ERR_Diametro91                   TipoErro = -29  // O diâmetro não pode ser maior que 91 cm.
-	ERR_Comprimento18                TipoErro = -30  // O comprimento não pode ser inferior a 18 cm.
-	ERR_Diametro5                    TipoErro = -31  // O diâmetro não pode ser inferior a 5 cm.
-	ERR_SomaDiametro                 TipoErro = -32  // A soma resultante do comprimento + o dobro do diâmetro não deve superar a 200 cm
-	ERR_SistemaIndisponivel          TipoErro = -33  // Sistema temporariamente fora do ar. Favor tentar mais tarde.
-	ERR_CodigoOuSenha                TipoErro = -34  // Código Administrativo ou Senha inválidos.
-	ERR_Senha                        TipoErro = -35  // Senha incorreta.
-	ERR_SemContrato                  TipoErro = -36  // Cliente não possui contrato vigente com os Correios.
-	ERR_SemServicoAtivo              TipoErro = -37  // Cliente não possui serviço ativo em seu contrato.
-	ERR_ServicoIndisponivelAdmin     TipoErro = -38  // Serviço indisponível para este código administrativo.
-	ERR_PesoExcedidoEnvelope         TipoErro = -39  // Peso excedido para o formato envelope
-	ERR_InformarDimensoes2           TipoErro = -40  // Para definicao do preco deverao ser informados, tambem, o comprimento e a largura e altura do objeto em centimetros (cm).
-	ERR_Comprimento60                TipoErro = -41  // O comprimento nao pode ser maior que 60 cm.
-	ERR_Comprimento16                TipoErro = -42  // (repetido) O comprimento nao pode ser inferior a 16 cm.
-	ERR_ComprimentoLargura120        TipoErro = -43  // A soma resultante do comprimento + largura nao deve superar a 120 cm
-	ERR_LarguraInferior2             TipoErro = -44  // < 11cm
-	ERR_LarguraSuperior60            TipoErro = -44  // > 60cm
-	ERR_ErroCalculoTarifa            TipoErro = -888 // Erro ao calcular a tarifa
-	ERR_LocalidadeOrigem             TipoErro = 006  // Localidade de origem não abrange o serviço informado
-	ERR_LocalidadeDestino            TipoErro = 007  // Localidade de destino não abrange o serviço informado
-	ERR_ServicoIndisponivelTrecho2   TipoErro = 8    // 008 Serviço indisponível para o trecho informado
-	ERR_AreaDeRiscoCEPInicial        TipoErro = 9    // 009 CEP inicial pertencente a Área de Risco.
-	ERR_AreaPrazoDiferenciado        TipoErro = 010  // Área com entrega temporariamente sujeita a prazo diferenciado.
-	ERR_AreaDeRiscoCEPs              TipoErro = 011  // CEP inicial e final pertencentes a Área de Risco
-	ERR_Indisponivel                 TipoErro = 7    // Serviço indisponível, tente mais tarde
-	ERR_WTF                          TipoErro = 99   // Outros erros diversos do .Net // ¯\_(ツ)_/¯
+	SvcSEDEXVarejo        TipoServico = "04014"
+	SvcSEDEXACobrarVarejo TipoServico = "40045"
+	SvcSEDEX10Varejo      TipoServico = "40215"
+	SvcSEDEXHojeVarejo    TipoServico = "40290"
+	SvcPACVarejo          TipoServico = "04510"
+	SvcPACComContrato     TipoServico = "04669"
+	SvcSEDEXComContrato   TipoServico = "04162"
+)
+
+// Todos os tipos de erros possíveis que a API dos Correios pode retornar
+const (
+	ErrTipoServicoInvalido          TipoErro = -1
+	ErrCepOrigemInvalido            TipoErro = -2
+	ErrCepDestinoInvalido           TipoErro = -3
+	ErrCepPesoExcedido              TipoErro = -4
+	ErrValorDeclaradoAlto10k        TipoErro = -5
+	ErrServicoIndisponivelTrecho    TipoErro = -6
+	ErrValorDeclaradoObrigatorio    TipoErro = -7
+	ErrMaoPropriaIndisponivel       TipoErro = -8
+	ErrAvisoRecebimentoIndisponivel TipoErro = -9
+	ErrPrecificacaoIndisponivel     TipoErro = -10
+	ErrInformarDimensoes            TipoErro = -11
+	ErrComprimento                  TipoErro = -12
+	ErrLargura                      TipoErro = -13
+	ErrAltura                       TipoErro = -14
+	ErrComprimento105               TipoErro = -15  // > 105cm
+	ErrLargura105                   TipoErro = -16  // > 105cm
+	ErrAltura105                    TipoErro = -17  // > 105cm
+	ErrAlturaInferior               TipoErro = -18  // < 2cm
+	ErrLarguraInferior              TipoErro = -20  // < 11cm
+	ErrComprimentoInferior          TipoErro = -22  // < 16cm
+	ErrDimensoesSoma                TipoErro = -23  // A soma resultante do comprimento + largura + altura não deve superar a 200 cm
+	ErrComprimento2                 TipoErro = -24  // WTF (ver -12)
+	ErrDiametro                     TipoErro = -25  // Diâmetro inválido
+	ErrComprimento3                 TipoErro = -26  // WTF (ver -12)
+	ErrDiametro2                    TipoErro = -27  // ?
+	ErrComprimento4                 TipoErro = -28  // O comprimento não pode ser maior que 105 cm.
+	ErrDiametro91                   TipoErro = -29  // O diâmetro não pode ser maior que 91 cm.
+	ErrComprimento18                TipoErro = -30  // O comprimento não pode ser inferior a 18 cm.
+	ErrDiametro5                    TipoErro = -31  // O diâmetro não pode ser inferior a 5 cm.
+	ErrSomaDiametro                 TipoErro = -32  // A soma resultante do comprimento + o dobro do diâmetro não deve superar a 200 cm
+	ErrSistemaIndisponivel          TipoErro = -33  // Sistema temporariamente fora do ar. Favor tentar mais tarde.
+	ErrCodigoOuSenha                TipoErro = -34  // Código Administrativo ou Senha inválidos.
+	ErrSenha                        TipoErro = -35  // Senha incorreta.
+	ErrSemContrato                  TipoErro = -36  // Cliente não possui contrato vigente com os Correios.
+	ErrSemServicoAtivo              TipoErro = -37  // Cliente não possui serviço ativo em seu contrato.
+	ErrServicoIndisponivelAdmin     TipoErro = -38  // Serviço indisponível para este código administrativo.
+	ErrPesoExcedidoEnvelope         TipoErro = -39  // Peso excedido para o formato envelope
+	ErrInformarDimensoes2           TipoErro = -40  // Para definicao do preco deverao ser informados, tambem, o comprimento e a largura e altura do objeto em centimetros (cm).
+	ErrComprimento60                TipoErro = -41  // O comprimento nao pode ser maior que 60 cm.
+	ErrComprimento16                TipoErro = -42  // (repetido) O comprimento nao pode ser inferior a 16 cm.
+	ErrComprimentoLargura120        TipoErro = -43  // A soma resultante do comprimento + largura nao deve superar a 120 cm
+	ErrLarguraInferior2             TipoErro = -44  // < 11cm
+	ErrLarguraSuperior60            TipoErro = -44  // > 60cm
+	ErrErroCalculoTarifa            TipoErro = -888 // Erro ao calcular a tarifa
+	ErrLocalidadeOrigem             TipoErro = 006  // Localidade de origem não abrange o serviço informado
+	ErrLocalidadeDestino            TipoErro = 007  // Localidade de destino não abrange o serviço informado
+	ErrServicoIndisponivelTrecho2   TipoErro = 8    // 008 Serviço indisponível para o trecho informado
+	ErrAreaDeRiscoCEPInicial        TipoErro = 9    // 009 CEP inicial pertencente a Área de Risco.
+	ErrAreaPrazoDiferenciado        TipoErro = 010  // Área com entrega temporariamente sujeita a prazo diferenciado.
+	ErrAreaDeRiscoCEPs              TipoErro = 011  // CEP inicial e final pertencentes a Área de Risco
+	ErrIndisponivel                 TipoErro = 7    // Serviço indisponível, tente mais tarde
+	ErrIndeterminado                TipoErro = 99   // Outros erros diversos do .Net // ¯\_(ツ)_/¯
 )
 
 type FreteRequest struct {
@@ -113,23 +126,40 @@ type FreteRequest struct {
 	AvisoRecebimento bool
 	CdEmpresa        string
 	DsSenha          string
+	Mode             RequestMode
 }
 
-func (r *FreteRequest) SetServicos(srvs ...TipoServico) {
+// SetServicos troca os tipos de serviço a serem consultados
+func (r *FreteRequest) SetServicos(srvs ...TipoServico) *FreteRequest {
 	r.Servicos = make([]TipoServico, 0)
 	for _, v := range srvs {
 		r.Servicos = append(r.Servicos, v)
 	}
+	return r
 }
 
+// AppendServico anexa o serviço srv aos serviços a serem consultados
+func (r *FreteRequest) AppendServico(srv TipoServico) *FreteRequest {
+	for _, v := range r.Servicos {
+		if v == srv {
+			// already exists
+			return r
+		}
+	}
+	r.Servicos = append(r.Servicos, srv)
+	return r
+}
+
+// FreteResponse resposta dos correios
 type FreteResponse struct {
 	Servicos map[TipoServico]ServicoResponse
 }
 
+// Any retorna o primeiro serviço recebido
 func (r *FreteResponse) Any() ServicoResponse {
 	if r.Servicos == nil || len(r.Servicos) == 0 {
 		return ServicoResponse{
-			Erro:    &ServicoResponseError{Codigo: ERR_WTF},
+			Erro:    &ServicoResponseError{Codigo: ErrIndeterminado},
 			ErroMsg: "nenhum serviço encontrado",
 		}
 	}
@@ -137,15 +167,17 @@ func (r *FreteResponse) Any() ServicoResponse {
 		return v
 	}
 	return ServicoResponse{
-		Erro:    &ServicoResponseError{Codigo: ERR_WTF},
+		Erro:    &ServicoResponseError{Codigo: ErrIndeterminado},
 		ErroMsg: "nenhum serviço encontrado",
 	}
 }
 
+// ServicoResponseError é a resposta de erro da API dos Correios
 type ServicoResponseError struct {
 	Codigo TipoErro
 }
 
+// ServicoResponse representa os dados retornados para um tipo de serviço
 type ServicoResponse struct {
 	Tipo                  TipoServico
 	Preco                 decimal.Decimal // preço != valor != custo; deveria ser tudo preço
@@ -160,6 +192,7 @@ type ServicoResponse struct {
 	ErroMsg               string
 }
 
+// xml wrapper for ServicoResponse
 type servicoResp struct {
 	Codigo                string
 	Valor                 string
@@ -174,6 +207,13 @@ type servicoResp struct {
 	MsgErro               string
 }
 
+// NewFreteRequest cria um struct *FreteRequest com os defaults:
+//
+// PesoKg         0.5
+// ComprimentoCm 16.0
+// LarguraCm     11.0
+// AlturaCm       5.0
+// Servicos      []{SvcSEDEXVarejo, SvcPACVarejo}
 func NewFreteRequest(cepOrigem, cepDestino string) *FreteRequest {
 	return &FreteRequest{
 		CepOrigem:      cepOrigem,
@@ -182,17 +222,22 @@ func NewFreteRequest(cepOrigem, cepDestino string) *FreteRequest {
 		ComprimentoCm:  decimal.NewFromFloat(16.0),
 		LarguraCm:      decimal.NewFromFloat(11.0),
 		AlturaCm:       decimal.NewFromFloat(5.0),
-		Servicos:       []TipoServico{SEDEX_Varejo, PAC_Varejo},
+		Servicos:       []TipoServico{SvcSEDEXVarejo, SvcPACVarejo},
 		ValorDeclarado: decimal.NewFromFloat(0.0),
 	}
 }
 
+// CalcularFrete envia o request p/ calcular o frete utilizando
+// um *FreteRequest
 // http://ws.correios.com.br/calculador/CalcPrecoPrazo.aspx?sCepOrigem=01243000&sCepDestino=04041002&nVlPeso=1&nCdFormato=1&nVlComprimento=16&nVlAltura=5&nVlLargura=11&StrRetorno=xml&nCdServico=40010,41106&nVlValorDeclarado=0
 func CalcularFrete(ctx context.Context, req *FreteRequest) (*FreteResponse, error) {
 	if req == nil {
 		return nil, errors.New("nil request")
 	}
-	if StupidSingleServiceMode && len(req.Servicos) > 1 {
+	// desde 2019, os Correios não aceitam consultas múltiplas caso não seja
+	// informado o código da empresa + senha
+	if len(req.Servicos) > 1 &&
+		((req.Mode == RequestModeAuto && req.CdEmpresa == "") || (req.Mode == RequestModeSingle)) {
 		reqs := make([]*FreteRequest, len(req.Servicos))
 		for k := range req.Servicos {
 			clone := &FreteRequest{
