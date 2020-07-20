@@ -22,7 +22,7 @@ func main() {
     // AlturaCm       5.0
     // Servicos      []{SvcSEDEXVarejo, SvcPACVarejo}
     r := correios.NewFreteRequest("01243000", "65299970")
-    resp, err := CalcularFrete(context.Background(), r)
+    resp, err := correios.CalcularFrete(context.Background(), r)
 
     if err != nil {
         fmt.Println("failed:", err.Error())
