@@ -145,12 +145,12 @@ const (
 	ErrLarguraInferior2             TipoErro = -44  // < 11cm
 	ErrLarguraSuperior60            TipoErro = -44  // > 60cm
 	ErrErroCalculoTarifa            TipoErro = -888 // Erro ao calcular a tarifa
-	ErrLocalidadeOrigem             TipoErro = 006  // Localidade de origem não abrange o serviço informado
-	ErrLocalidadeDestino            TipoErro = 007  // Localidade de destino não abrange o serviço informado
+	ErrLocalidadeOrigem             TipoErro = 6  // Localidade de origem não abrange o serviço informado
+	ErrLocalidadeDestino            TipoErro = 7  // Localidade de destino não abrange o serviço informado
 	ErrServicoIndisponivelTrecho2   TipoErro = 8    // 008 Serviço indisponível para o trecho informado
 	ErrAreaDeRiscoCEPInicial        TipoErro = 9    // 009 CEP inicial pertencente a Área de Risco.
-	ErrAreaPrazoDiferenciado        TipoErro = 010  // Área com entrega temporariamente sujeita a prazo diferenciado.
-	ErrAreaDeRiscoCEPs              TipoErro = 011  // CEP inicial e final pertencentes a Área de Risco
+	ErrAreaPrazoDiferenciado        TipoErro = 10  // Área com entrega temporariamente sujeita a prazo diferenciado.
+	ErrAreaDeRiscoCEPs              TipoErro = 11  // CEP inicial e final pertencentes a Área de Risco
 	ErrIndisponivel                 TipoErro = 7    // Serviço indisponível, tente mais tarde
 	ErrIndeterminado                TipoErro = 99   // Outros erros diversos do .Net // ¯\_(ツ)_/¯
 )
