@@ -1,4 +1,6 @@
-// Copyright (c) 2020 Gabriel Ochsenhofer
+package correios_test
+
+// Copyright (c) 2021 Gabriel Ochsenhofer
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,8 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package correios_test
-
 import (
 	"context"
 	"testing"
@@ -28,9 +28,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSimpleRequest(t *testing.T) {
-	r := correios.NewFreteRequest("01243000", "65299970").SetServicos(correios.SvcSEDEXVarejo)
-	resp, err := correios.CalcularFrete(context.Background(), r)
+func TestConsultaCEP(t *testing.T) {
+	// not found
+	ctx, cf := context.WithCancel(context.Background())
+	defer cf()
+	r, err := correios.ConsultaCEP(ctx, "123456789")
+	assert.Error(t, err)
+	assert.Nil(t, r)
+	// found
+	r, err = correios.ConsultaCEP(ctx, "13056535")
 	assert.NoError(t, err)
-	assert.NotNil(t, resp)
+	assert.NotNil(t, r)
+	assert.Equal(t, "13056535", r.CEP)
 }
