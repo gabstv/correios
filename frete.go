@@ -66,7 +66,7 @@ type TipoErro int
 // Não há nenhuma documentação sobre a mudança no momento.
 
 // Todos os tipos de serviço
-//https://www.correios.com.br/para-voce/correios-de-a-a-z/pdf/calculador-remoto-de-precos-e-prazos/manual-de-implementacao-do-calculo-remoto-de-precos-e-prazos
+// https://www.correios.com.br/para-voce/correios-de-a-a-z/pdf/calculador-remoto-de-precos-e-prazos/manual-de-implementacao-do-calculo-remoto-de-precos-e-prazos
 const (
 	SvcSEDEXVarejo        TipoServico = "04014"
 	SvcSEDEXACobrarVarejo TipoServico = "40045"
@@ -331,11 +331,27 @@ func CalcularFrete(ctx context.Context, req *FreteRequest) (*FreteResponse, erro
 		v.Set("sDsSenha", req.DsSenha)
 	}
 
+	if AlwaysUseFallback && FallbackFunc != nil {
+		return FallbackFunc(v)
+	}
+
 	rq0, _ := http.NewRequest(http.MethodGet, FreteEndpoint+"?"+v.Encode(), nil)
+
+	if GlobalTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, GlobalTimeout)
+		defer cancel()
+	}
+
 	rq0 = rq0.WithContext(ctx)
 
 	cresp, err := http.DefaultClient.Do(rq0)
 	if err != nil {
+
+		if FallbackFunc != nil {
+			return FallbackFunc(v)
+		}
+
 		return nil, err
 	}
 	defer cresp.Body.Close()
